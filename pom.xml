@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════════
+    SparePartShop – Parent Aggregator POM
+  ═══════════════════════════════════════════════════════════════════════════════
+
+    This is an AGGREGATOR-ONLY POM. It does NOT serve as a parent for the
+    child services (each service still inherits from spring-boot-starter-parent
+    for its own BOM management). Instead, this POM exists so that the entire
+    platform can be built, cleaned, or tested with a single command from the
+    repository root:
+
+        mvn clean install   -> builds every service in the right order
+        mvn clean           -> wipes target/ in every module
+        mvn -pl product-service -am install   -> builds one module + deps
+
+    ───────────────────────────────────────────────────────────────────────────
+    SYSTEM ARCHITECTURE
+    ───────────────────────────────────────────────────────────────────────────
+
+         ┌─────────────────────────────────────────────────────────────┐
+         │                        CLIENTS                              │
+         │          (Postman / curl / Frontend / Mobile App)           │
+         └───────────────────────────┬─────────────────────────────────┘
+                                     │ HTTP
+                                     ▼
+         ┌─────────────────────────────────────────────────────────────┐
+         │                   API GATEWAY  (:8080)                      │
+         │         Spring Cloud Gateway MVC · Routing · Filters        │
+         └───────────────────────────┬─────────────────────────────────┘
+                                     │ lb://service-name
+                                     ▼
+         ┌─────────────────────────────────────────────────────────────┐
+         │                EUREKA SERVER  (:8761)                       │
+         │         Service Registry · Heartbeats · Discovery           │
+         └─────────────────────────────────────────────────────────────┘
+                                     │
+         ┌───────────┬───────────┬───┴───────┬───────────┬───────────┐
+         ▼           ▼           ▼           ▼           ▼           ▼
+      PRODUCT   INVENTORY    CUSTOMER     ORDER      BILLING     PAYMENT
+       :8081      :8082       :8083       :8084       :8085       :8086
+         │           │           │           │           │           │
+         ▼           ▼           ▼           ▼           ▼           ▼
+       MySQL       MySQL       MySQL       MySQL       MySQL       MySQL
+       :3307       :3308       :3309       :3310       :3311       :3312
+
+    ───────────────────────────────────────────────────────────────────────────
+    INTER-SERVICE COMMUNICATION (OpenFeign via Eureka)
+    ───────────────────────────────────────────────────────────────────────────
+
+        order-service   ──calls──▶  product-service    (fetch product details)
+        order-service   ──calls──▶  inventory-service  (reserve / release stock)
+        order-service   ──calls──▶  customer-service   (validate customer)
+        order-service   ──calls──▶  billing-service    (generate invoice)
+        billing-service ──calls──▶  customer-service   (snapshot billing info)
+        payment-service ──calls──▶  billing-service    (mark invoice paid)
+
+    ───────────────────────────────────────────────────────────────────────────
+    KEY PATTERNS IMPLEMENTED
+    ───────────────────────────────────────────────────────────────────────────
+
+      Architectural
+        · Microservices with Database-per-Service
+        · Service Discovery (Netflix Eureka)
+        · API Gateway (Spring Cloud Gateway MVC)
+
+      Integration
+        · Client-side load balancing (lb:// URIs)
+        · OpenFeign declarative HTTP clients
+        · Constants-based API paths (ApiPaths / ClientApiPaths)
+
+      Transactional
+        · Saga (orchestration) with compensating actions
+        · Idempotency keys (payment-service)
+        · Optimistic locking (@Version on Inventory)
+
+      Data
+        · UUID primary keys everywhere
+        · Snapshot pattern (order-item stores product name/price,
+                            invoice stores customer billing info)
+        · Soft-delete flags
+        · Audit timestamps (@CreationTimestamp / @UpdateTimestamp)
+
+      Resilience / Ops
+        · Global exception handlers with structured ErrorResponse
+        · Spring Boot Actuator health endpoints
+        · Async webhook simulation (@Async thread pool)
+        · Strategy pattern for pluggable payment gateways
+  ═══════════════════════════════════════════════════════════════════════════════
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.sparepartshop</groupId>
+    <artifactId>sparepartshop-platform</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>SparePartShop Platform</name>
+    <description>
+        Aggregator POM for the SparePartShop microservices platform.
+        Car-filter &amp; spare-parts e-commerce backend built on Spring Boot,
+        Spring Cloud (Eureka, Gateway MVC, OpenFeign), and MySQL.
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>17</java.version>
+        <spring-boot.version>3.5.13</spring-boot.version>
+        <spring-cloud.version>2025.0.2</spring-cloud.version>
+    </properties>
+
+    <!--
+        Build order matters only for multi-module dependency resolution.
+        Since every service is an independent Spring Boot fat JAR with no
+        compile-time dependency on a sibling, the order below is logical
+        (infrastructure first, then business services, then edge), not
+        technically required by Maven.
+    -->
+    <modules>
+        <module>eureka-server</module>
+        <module>api-gateway</module>
+        <module>product-service</module>
+        <module>inventory-service</module>
+        <module>customer-service</module>
+        <module>order-service</module>
+        <module>billing-service</module>
+        <module>payment-service</module>
+    </modules>
+
+</project>

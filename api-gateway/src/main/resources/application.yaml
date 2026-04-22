@@ -1,0 +1,69 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      mvc:
+
+        http-client:
+          connect-timeout: 5000
+          read-timeout: 30000
+
+        discovery:
+          locator:
+            enabled: true
+            lower-case-service-id: true
+
+        routes:
+          - id: product-service
+            uri: lb://product-service
+            predicates:
+              - Path=/api/v1/products/**
+
+          - id: inventory-service
+            uri: lb://inventory-service
+            predicates:
+              - Path=/api/v1/inventory/**
+
+          - id: customer-service
+            uri: lb://customer-service
+            predicates:
+              - Path=/api/v1/customers/**
+
+          - id: order-service
+            uri: lb://order-service
+            predicates:
+              - Path=/api/v1/orders/**
+
+          - id: billing-service
+            uri: lb://billing-service
+            predicates:
+              - Path=/api/v1/invoices/**
+
+          - id: payment-service
+            uri: lb://payment-service
+            predicates:
+              - Path=/api/v1/payments/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    hostname: localhost
+    prefer-ip-address: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,gateway,info,routes
+  endpoint:
+    gateway:
+      access: unrestricted
+    health:
+      show-details: always

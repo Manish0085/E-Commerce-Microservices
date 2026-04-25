@@ -10,4 +10,8 @@ public final class ApiPaths {
     public static final String BY_PHONE = "/phone/{phone}";
     public static final String BY_TYPE = "/type/{type}";
     public static final String BY_CITY = "/city/{city}";
+
+    public static final String AUTH = BASE_API + "/auth";
+    public static final String AUTH_SIGNUP = "/signup";
+    public static final String AUTH_LOGIN = "/login";
 }

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
-@FeignClient(name = "inventory-service")
+@FeignClient(name = "inventory-service", fallback = InventoryServiceClientFallback.class)
 public interface InventoryServiceClient {
 
     @GetMapping(ClientApiPaths.Inventory.GET_BY_PRODUCT_ID)

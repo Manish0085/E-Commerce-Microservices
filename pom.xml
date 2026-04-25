@@ -120,6 +120,7 @@
         technically required by Maven.
     -->
     <modules>
+        <module>config-server</module>
         <module>eureka-server</module>
         <module>api-gateway</module>
         <module>product-service</module>

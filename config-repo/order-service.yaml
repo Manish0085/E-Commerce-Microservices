@@ -1,0 +1,54 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: order-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3310/order_db
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+#  cloud:
+#    openfeign:
+#      circuitbreaker:
+#        enabled: true
+
+
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health,info,circuitbreakers,circuitbreakerevents
+#  endpoint:
+#    health:
+#      show-details: always
+#  health:
+#    circuitbreakers:
+#      enabled: true
+#
+#resilience4j:
+#  circuitbreaker:
+#    configs:
+#      default:
+#        slidingWindowType: COUNT_BASED
+#        slidingWindowSize: 10
+#        minimumNumberOfCalls: 5
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 10s
+#        permittedNumberOfCallsInHalfOpenState: 3
+#        automaticTransitionFromOpenToHalfOpenEnabled: true
+#        recordExceptions:
+#          - feign.FeignException
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+#    instances:
+#      InventoryServiceClientreduceStockUUIDMap:
+#        baseConfig: default

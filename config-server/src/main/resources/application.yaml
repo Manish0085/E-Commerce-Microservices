@@ -1,0 +1,27 @@
+server:
+  port: 8888
+
+
+spring:
+  application:
+    name: config-server
+
+  profiles:
+    active: native
+
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:/home/vidit/Desktop/Microservices/config-repo
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: ALWAYS

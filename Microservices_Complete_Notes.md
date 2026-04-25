@@ -1095,7 +1095,7 @@ Log all incoming requests for auditing and monitoring. Since all traffic flows t
 ### Architecture with Spring Cloud Gateway
 
 ```yaml
-# application.yml for Spring Cloud Gateway
+# application.yaml for Spring Cloud Gateway
 spring:
   cloud:
     gateway:
@@ -1219,7 +1219,7 @@ It's better to route to a potentially dead instance (which will fail fast) than 
 ### Eureka Server Configuration
 
 ```yaml
-# Eureka Server - application.yml
+# Eureka Server - application.yaml
 server:
   port: 8761
 
@@ -1234,7 +1234,7 @@ eureka:
 ### Eureka Client Configuration
 
 ```yaml
-# Any Microservice - application.yml
+# Any Microservice - application.yaml
 eureka:
   client:
     service-url:
@@ -2232,7 +2232,7 @@ Immediately visible: Product Service is the bottleneck at 500ms!
 In Spring Boot 3+, you use Micrometer Tracing (previously Spring Cloud Sleuth):
 
 ```yaml
-# application.yml
+# application.yaml
 management:
   tracing:
     sampling:

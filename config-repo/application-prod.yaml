@@ -1,0 +1,17 @@
+platform:
+  environment: production
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+
+logging:
+  level:
+    org.springframework: WARN
+    com.sparepartshop: INFO

@@ -1,6 +1,7 @@
 package com.sparepartshop.customer_service.entity;
 
 import com.sparepartshop.customer_service.enums.CustomerType;
+import com.sparepartshop.customer_service.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -57,6 +58,14 @@ public class Customer {
 
     @Column(length = 20)
     private String gstNumber;
+
+    @Column(name = "password_hash", length = 100)
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    @Builder.Default
+    private Role role = Role.CUSTOMER;
 
     @Column(precision = 10, scale = 2)
     @Builder.Default

@@ -1,6 +1,7 @@
 package com.sparepartshop.api_gateway.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "security")
+@RefreshScope
 public class JwtProperties {
 
     private Jwt jwt = new Jwt();

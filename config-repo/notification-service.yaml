@@ -1,2 +1,39 @@
 server:
   port: 8087
+
+spring:
+  application:
+    name: notification-service
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.type.mapping: >
+          orderPlaced:com.sparepartshop.notification_service.event.OrderPlacedEvent,
+          paymentCompleted:com.sparepartshop.notification_service.event.PaymentCompletedEvent,
+          customerRegistered:com.sparepartshop.notification_service.event.CustomerRegisteredEvent,
+          orderCancelled:com.sparepartshop.notification_service.event.OrderCancelledEvent
+
+  mail:
+    host: smtp-relay.brevo.com
+    port: 587
+    username: a94d3f001@smtp-brevo.com
+    password: ${BREVO_SMTP_KEY:dummy-key-for-startup}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+notification:
+  email:
+    from: ${BREVO_SENDER_EMAIL:noreply@example.com}
+    from-name: SparePartShop

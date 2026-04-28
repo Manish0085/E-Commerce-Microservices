@@ -16,7 +16,16 @@ spring:
       ddl-auto: update
     show-sql: true
 
-
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          paymentCompleted:com.sparepartshop.payment_service.event.PaymentCompletedEvent,
+          paymentFailed:com.sparepartshop.payment_service.event.PaymentFailedEvent,
+          paymentRefunded:com.sparepartshop.payment_service.event.PaymentRefundedEvent
 
 payment:
   mock:

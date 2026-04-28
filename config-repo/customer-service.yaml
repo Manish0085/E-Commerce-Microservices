@@ -16,6 +16,15 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          customerRegistered:com.sparepartshop.customer_service.event.CustomerRegisteredEvent
+
 security:
   jwt:
     secret: ${JWT_SECRET:dev-jwt-secret-at-least-32-bytes-long-change-me-in-prod}

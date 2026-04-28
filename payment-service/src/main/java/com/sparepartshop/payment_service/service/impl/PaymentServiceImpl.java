@@ -9,6 +9,9 @@ import com.sparepartshop.payment_service.dto.client.ApiResponseWrapper;
 import com.sparepartshop.payment_service.dto.client.InvoiceClientDTO;
 import com.sparepartshop.payment_service.entity.Payment;
 import com.sparepartshop.payment_service.enums.PaymentStatus;
+import com.sparepartshop.payment_service.event.PaymentCompletedEvent;
+import com.sparepartshop.payment_service.event.PaymentFailedEvent;
+import com.sparepartshop.payment_service.event.PaymentRefundedEvent;
 import com.sparepartshop.payment_service.exception.BadRequestException;
 import com.sparepartshop.payment_service.exception.PaymentGatewayException;
 import com.sparepartshop.payment_service.exception.ResourceNotFoundException;
@@ -25,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -43,6 +47,7 @@ import java.util.UUID;
 @Transactional
 public class PaymentServiceImpl implements PaymentService {
 
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final PaymentGateway paymentGateway;
@@ -201,6 +206,36 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (updated.getStatus() == PaymentStatus.SUCCESS) {
             notifyBillingService(updated);
+
+            PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                    .paymentId(updated.getId())
+                    .paymentReference(updated.getPaymentReference())
+                    .invoiceId(updated.getInvoiceId())
+                    .invoiceNumber(updated.getInvoiceNumber())
+                    .customerId(updated.getCustomerId())
+                    .amount(updated.getAmount())
+                    .paymentMethod(updated.getPaymentMethod().name())
+                    .paidAt(updated.getCompletedAt())
+                    .build();
+
+            kafkaTemplate.send("payment-completed", updated.getCustomerId().toString(), event);
+            log.info("Published PaymentCompletedEvent for {}", updated.getPaymentReference());
+        } else if (updated.getStatus() == PaymentStatus.FAILED) {
+
+            PaymentFailedEvent event = PaymentFailedEvent.builder()
+                    .paymentId(updated.getId())
+                    .paymentReference(updated.getPaymentReference())
+                    .invoiceId(updated.getInvoiceId())
+                    .invoiceNumber(updated.getInvoiceNumber())
+                    .customerId(updated.getCustomerId())
+                    .amount(updated.getAmount())
+                    .paymentMethod(updated.getPaymentMethod().name())
+                    .failureReason(updated.getFailureReason())
+                    .failedAt(updated.getCompletedAt())
+                    .build();
+
+            kafkaTemplate.send("payment-failed", updated.getCustomerId().toString(), event);
+            log.info("Published PaymentFailedEvent for {}", updated.getPaymentReference());
         }
 
         return paymentMapper.toResponseDTO(updated);
@@ -245,6 +280,19 @@ public class PaymentServiceImpl implements PaymentService {
             }
 
             Payment updated = paymentRepository.saveAndFlush(payment);
+            PaymentRefundedEvent event = PaymentRefundedEvent.builder()
+                    .paymentId(updated.getId())
+                    .paymentReference(updated.getPaymentReference())
+                    .invoiceId(updated.getInvoiceId())
+                    .customerId(updated.getCustomerId())
+                    .refundAmount(request.getAmount())
+                    .originalAmount(updated.getAmount())
+                    .refundedAt(updated.getRefundedAt())
+                    .build();
+
+            kafkaTemplate.send("payment-refunded", updated.getCustomerId().toString(), event);
+            log.info("Published PaymentRefundedEvent for {}", updated.getPaymentReference());
+
             log.info("Refund processed. Payment {}: {} refunded",
                     updated.getPaymentReference(), totalRefunded);
 

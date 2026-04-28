@@ -11,11 +11,14 @@ import com.sparepartshop.order_service.entity.Order;
 import com.sparepartshop.order_service.entity.OrderItem;
 import com.sparepartshop.order_service.enums.OrderStatus;
 import com.sparepartshop.order_service.enums.PaymentMode;
+import com.sparepartshop.order_service.event.OrderCancelledEvent;
+import com.sparepartshop.order_service.event.OrderPlacedEvent;
 import com.sparepartshop.order_service.exception.BadRequestException;
 import com.sparepartshop.order_service.exception.ResourceNotFoundException;
 import com.sparepartshop.order_service.exception.ServiceUnavailableException;
 import com.sparepartshop.order_service.repository.OrderRepository;
 import com.sparepartshop.order_service.service.OrderService;
+import org.springframework.kafka.core.KafkaTemplate;
 import feign.FeignException;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerServiceClient customerServiceClient;
     private final InventoryServiceClient inventoryServiceClient;
     private final ProductServiceClient productServiceClient;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
 
     @Override
@@ -101,6 +105,18 @@ public class OrderServiceImpl implements OrderService {
         Order confirmedOrder = orderRepository.saveAndFlush(savedOrder);
         log.info("Order confirmed: {}", confirmedOrder.getOrderNumber());
 
+        OrderPlacedEvent event = OrderPlacedEvent.builder()
+                .orderId(confirmedOrder.getId())
+                .orderNumber(confirmedOrder.getOrderNumber())
+                .customerId(confirmedOrder.getCustomerId())
+                .customerName(customer.getName())
+                .customerEmail(customer.getEmail())
+                .totalAmount(confirmedOrder.getTotalAmount())
+                .placedAt(confirmedOrder.getOrderDate())
+                .build();
+
+        kafkaTemplate.send("order-placed", confirmedOrder.getCustomerId().toString(), event);
+        log.info("Published OrderPlacedEvent for order {}", confirmedOrder.getOrderNumber());
 
         return mapToResponseDTO(confirmedOrder);
     }
@@ -242,6 +258,24 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.saveAndFlush(order);
         log.info("Order cancelled: {}", order.getOrderNumber());
+
+        ApiResponseWrapper<CustomerClientDTO> customerResp =
+                customerServiceClient.getCustomerById(id);
+
+        CustomerClientDTO customer = customerResp != null ? customerResp.getData(): null;
+
+        OrderCancelledEvent event = OrderCancelledEvent.builder()
+                .orderId(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .customerId(order.getCustomerId())
+                .customerName(customer != null ? customer.getName() : null)
+                .customerEmail(customer != null ? customer.getEmail() : null)
+                .reason("Customer requested cancellation")                              // adapt to your param name
+                .cancelledAt(java.time.LocalDateTime.now())
+                .build();
+
+        kafkaTemplate.send("order-cancelled", order.getCustomerId().toString(), event);
+        log.info("Published OrderCancelledEvent for order {}", order.getOrderNumber());
 
 
     }

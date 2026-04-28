@@ -6,6 +6,7 @@ import com.sparepartshop.customer_service.dto.auth.LoginResponse;
 import com.sparepartshop.customer_service.dto.auth.SignupRequest;
 import com.sparepartshop.customer_service.entity.Customer;
 import com.sparepartshop.customer_service.enums.Role;
+import com.sparepartshop.customer_service.event.CustomerRegisteredEvent;
 import com.sparepartshop.customer_service.exception.DuplicateResourceException;
 import com.sparepartshop.customer_service.exception.UnauthorizedException;
 import com.sparepartshop.customer_service.mapper.CustomerMapper;
@@ -14,6 +15,7 @@ import com.sparepartshop.customer_service.security.JwtService;
 import com.sparepartshop.customer_service.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
     private final CustomerMapper customerMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     private static final String INVALID_CREDENTIALS = "Invalid phone or password";
 
@@ -64,6 +67,18 @@ public class AuthServiceImpl implements AuthService {
 
         Customer saved = customerRepository.save(customer);
         log.info("Signup successful for customer id: {}", saved.getId());
+
+        CustomerRegisteredEvent event = CustomerRegisteredEvent.builder()
+                .customerId(saved.getId())
+                .name(saved.getName())
+                .email(saved.getEmail())
+                .phone(saved.getPhone())
+                .customerType(saved.getCustomerType().name())
+                .registeredAt(saved.getCreatedAt())
+                .build();
+
+        kafkaTemplate.send("customer-registered", saved.getId().toString(), event);
+        log.info("Published CustomerRegisteredEvent for {}", saved.getId());
         return customerMapper.toResponseDTO(saved);
     }
 
